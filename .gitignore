@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
+venv/
+
+# SQL Server Management Studio temp
+*.bak
+*.log
+*.ldf
+*.mdf
+
+# VS Code settings
+.vscode/
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
