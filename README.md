@@ -12,9 +12,9 @@ Python, SQL Server ve Siemens TIA Portal kullanarak fabrika süreçlerinin izlen
 ## Proje Yapısı
 
 QualityFlow/
-├── backend/       # Python + SQL kodları
-├── plc/           # TIA Portal projeleri
-├── scada/         # WinCC HMI konfigürasyonları
-├── docs/          # Dokümantasyon, diyagramlar
-└── README.md
+- backend/       # Python + SQL kodları
+- plc/           # TIA Portal projeleri
+- scada/         # WinCC HMI konfigürasyonları
+- docs/          # Dokümantasyon, diyagramlar
+- README.md
 
