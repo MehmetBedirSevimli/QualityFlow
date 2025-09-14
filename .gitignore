@@ -4,19 +4,37 @@ __pycache__/
 *.pyo
 *.pyd
 
-# Virtual environment
+# Virtual env
+.venv/
 venv/
 
-# SQL Server Management Studio temp
+# Notebooks
+.ipynb_checkpoints/
+
+# Build/artifacts
+dist/
+build/
+*.egg-info/
+
+# Tools/cache
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# SQL Server
 *.bak
 *.log
 *.ldf
 *.mdf
 
-# VS Code settings
-.vscode/
-
-# OS-specific
-.DS_Store
-Thumbs.db
-
+# Env files
+.env
+.env.*
