@@ -1,0 +1,9 @@
+# Varsayılan olarak tüm metin dosyalarını LF ile sakla
+* text=auto eol=lf
+
+# Windows batch dosyaları CRLF kullanır
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# PowerShell scriptleri CRLF kullanır
+*.ps1 text eol=crlf
