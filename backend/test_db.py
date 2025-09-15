@@ -1,29 +1,26 @@
-import pyodbc
+# backend/test_db.py
+import datetime as dt
+from backend.db import get_connection
+from tabulate import tabulate
 
-# Baglanti bilgisi
-conn = pyodbc.connect(
-    "Driver={ODBC Driver 17 for SQL Server};"
-    "Server=localhost;"
-    "Database=QualityFlowDB;"
-    "Trusted_Connection=yes;"
-)
+def main():
+    cn = get_connection()
+    cur = cn.cursor()
 
-cursor = conn.cursor()
+    # Yeni satır ekle
+    cur.execute(
+        "INSERT INTO readings(ts,device_id,parameter,value) VALUES (?,?,?,?)",
+        dt.datetime.now(dt.UTC), "PLC1", "pressure", 3.14
+    )
+    cn.commit()
 
-# 1. Veri ekle
-cursor.execute(
-    "INSERT INTO SensorData (SensorName, Value) VALUES (?, ?)",
-    ("TempSensor", 25.3)
-)
-conn.commit()
-print("Veri basariyla eklendi.")
+    # Son 5 satırı çek
+    cur.execute("SELECT TOP 5 id, ts, device_id, parameter, value FROM readings ORDER BY id DESC")
+    rows = cur.fetchall()
+    headers = ["id", "timestamp", "device_id", "parameter", "value"]
 
-# 2. Tabloyu oku
-cursor.execute("SELECT Id, SensorName, Value, Timestamp FROM SensorData")
-rows = cursor.fetchall()
+    print(tabulate(rows, headers=headers, tablefmt="github"))
+    cn.close()
 
-print("Tablodaki kayitlar:")
-for row in rows:
-    print(row)
-
-conn.close()
+if __name__ == "__main__":
+    main()
