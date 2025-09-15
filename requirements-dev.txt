@@ -1,0 +1,13 @@
+# Development & Testing dependencies
+
+# Tablo gibi çıktı almak için
+tabulate==0.9.0
+
+# Test framework
+pytest==8.3.3
+
+# Kod formatlama
+black==24.8.0
+
+# Statik analiz / lint
+ruff==0.6.9
