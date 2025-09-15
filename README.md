@@ -1,92 +1,64 @@
-# QualityFlow
+# Akıllı Üretim Hattı İzleme ve Anomali Tespiti
 
-## 📌 Proje Tanımı
-QualityFlow, üretim hattı verilerini **simülasyon ortamında** üreten, toplayan, analiz eden ve görselleştiren bir endüstriyel veri yönetim projesidir.  
-Amaç, gerçek fabrika erişimi olmadan **PLC/SCADA + SQL Server + Python veri bilimi** zincirini uçtan uca simüle etmektir.  
-
----
-
-## ⚙️ Kullanılan Teknolojiler
-- **Python 3.11**  
-  - FastAPI (REST API)  
-  - Uvicorn (ASGI Server)  
-  - Pandas, NumPy, PyArrow (veri işleme)  
-  - Scikit-learn, LightGBM, XGBoost (makine öğrenmesi)  
-  - SHAP (model açıklanabilirliği)  
-  - ONNX + ONNX Runtime (model dağıtımı)  
-  - Plotly + Streamlit (dashboard ve görselleştirme)  
-  - PyODBC + SQLAlchemy (SQL Server bağlantısı)  
-
-- **Veritabanı**  
-  - SQL Server (Docker container)  
-  - Opsiyonel: MongoDB (yarı-yapısal log verileri için)  
-
-- **PLC / SCADA**  
-  - Siemens TIA Portal  
-  - PLCSIM (sanal PLC)  
-  - WinCC Runtime (HMI testleri)  
-
-- **Ortam**  
-  - Docker Desktop  
-  - Git & GitHub  
+## 📌 Projenin Amacı
+Bu projenin amacı, fabrika ortamını simüle ederek SCADA/PLC tabanlı üretim hattı verilerinin (sıcaklık, basınç, akış hızı, motor durumu, arıza sinyali vb.) toplanması, SQL veritabanına kaydedilmesi ve Python tabanlı makine öğrenmesi algoritmaları ile işlenmesidir.  
+Amaç; üretim hattında anormalliklerin tespiti ve kestirimci bakım senaryolarının uygulanmasıdır.
 
 ---
 
-## 🚀 Geliştirme Aşamaları
-1. **Ortam Kurulumu**  
-   - Python sanal ortam (venv)  
-   - Gerekli kütüphaneler kurulumu  
-   - Docker üzerinde SQL Server ve opsiyonel MongoDB  
+## 🛠️ Kullanılacak Teknolojiler
+- **Donanım / Simülasyon**
+  - Siemens TIA Portal + PLCSIM
+  - WinCC Runtime (HMI)
 
-2. **Veri Simülasyonu**  
-   - TIA Portal’da pompa, motor, sensörlerle sanal üretim hattı  
-   - PLCSIM ile gerçek zamanlı veri üretimi  
+- **Veritabanı**
+  - SQL Server (alternatif: PostgreSQL)
 
-3. **Veri Toplama ve Depolama**  
-   - Python script ile simülasyon verilerini SQL Server’a yazma  
-   - Tablo alanları: `timestamp, device_id, parameter, value`  
+- **Programlama ve Veri Bilimi**
+  - Python (pandas, NumPy, scikit-learn, LightGBM, XGBoost, PyArrow, ONNX, Streamlit, Plotly)
 
-4. **Veri İşleme ve Analiz**  
-   - Pandas + NumPy ile veri temizleme  
-   - ML modelleri (LightGBM/XGBoost) ile anomali tespiti ve trend analizi  
-   - Modellerin ONNX formatında kaydedilmesi  
+- **Altyapı**
+  - Docker
+  - Git & GitHub
+  - FastAPI + Uvicorn (API geliştirme)
 
-5. **Büyük Veri Senaryosu**  
-   - Docker üzerinde Apache Spark ile batch/stream processing denemeleri  
-
-6. **API Katmanı**  
-   - FastAPI ile REST API  
-   - `/data` → Son verileri döndürme  
-   - `/predict` → Arıza tahmini döndürme  
-   - JWT ile kimlik doğrulama  
-
-7. **Dashboard ve Görselleştirme**  
-   - Streamlit + Plotly arayüzü  
-   - Zaman serisi grafikleri, KPI göstergeleri  
-   - Rol bazlı kullanıcı girişi  
-
-8. **Dokümantasyon ve Raporlama**  
-   - Proje raporu  
-   - README + diyagramlar  
-   - Canlı demo (Streamlit panel linki)  
+- **Görselleştirme**
+  - Streamlit panel
+  - HMI ekran entegrasyonu
 
 ---
 
-## 📂 Proje Yapısı (taslak)
-```
-QualityFlow/
-- api/          # FastAPI kodları
-- data/         # Örnek veriler
-- ml/           # Makine öğrenmesi modelleri
-- panel/        # Streamlit dashboard
-- infra/        # Docker, veritabanı ayarları
-- docs/         # Diyagramlar, raporlar
-- README.md
-- requirements.txt
-```
+## 🚀 Geliştirme Adımları
+
+### 1. Ortam Kurulumu
+- Python 3.11 sanal ortam oluşturma  
+- Gerekli kütüphanelerin yüklenmesi  
+- SQL Server kurulumu ve test veritabanı  
+- Docker ve Git altyapısının hazırlanması  
+
+### 2. Veri Kaynağı (Simülasyon)
+- TIA Portal + PLCSIM ile sensör/makine verilerinin simüle edilmesi  
+- WinCC Runtime üzerinden HMI ekranında değerlerin görselleştirilmesi  
+
+### 3. Veri Toplama ve Depolama
+- Python script’i ile PLC’den veri çekme  
+- SQL Server’a tablo bazlı kayıt (timestamp, device_id vb. ile)  
+
+### 4. Veri İşleme ve Analiz
+- Python ile veri temizleme ve dönüştürme  
+- Anomali tespiti için ML modelleri (scikit-learn, LightGBM, XGBoost)  
+- ONNX ile model optimizasyonu ve hızlı tahmin  
+
+### 5. API Katmanı
+- FastAPI ile ML modellerinin REST API üzerinden servis edilmesi  
+- HMI ve diğer istemcilerin API’ye erişimi  
+
+### 6. Görselleştirme
+- Streamlit panelinde grafikler, raporlar, alarmlar  
+- HMI ekranına özet bilgiler  
+
+### 7. Dokümantasyon ve Versiyonlama
+- `README.md`, kullanım kılavuzları ve proje açıklamaları  
+- GitHub repo üzerinden versiyonlama ve işbirliği  
 
 ---
-
-## 📝 Notlar
-- Tüm geliştirme **simülasyon ortamında** yapılır, gerçek fabrika verisine ihtiyaç yoktur.  
-- İş ilanlarındaki “veri toplama, analiz etme ve görselleştirme” gereksinimleri birebir karşılanır.  
