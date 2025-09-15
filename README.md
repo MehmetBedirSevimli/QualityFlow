@@ -62,3 +62,57 @@ Amaç; üretim hattında anormalliklerin tespiti ve kestirimci bakım senaryolar
 - GitHub repo üzerinden versiyonlama ve işbirliği  
 
 ---
+
+## Geliştirme Aşamaları
+### Aşama 1 – Ortam Kurulumu
+- Python sanal ortam (`.venv`) oluşturuldu.
+- Gerekli bağımlılıklar (`requirements.txt`) yüklendi.
+- `requirements-dev.txt` ile geliştirme/test bağımlılıkları ayrıldı.
+- Docker Desktop üzerinde SQL Server container kuruldu.
+- `QualityFlowDB` veritabanı ve `readings` tablosu oluşturuldu.
+- `backend/db.py` ile `.env` üzerinden güvenli bağlantı sağlandı.
+- `test_db*.py` dosyaları ile bağlantı, ekleme ve sorgulama testleri yapıldı.
+
+## 🚀 Hızlı Başlatma
+
+Her bilgisayar yeniden başlatıldığında sanal ortam ve Docker container tekrar aktif edilmelidir.
+
+### 1) Sanal ortam (venv) aktive etme
+- **Git Bash**
+  ```bash
+  source .venv/Scripts/activate
+  ```
+- **PowerShell**
+  ```powershell
+  .\.venv\Scripts\Activate.ps1
+  ```
+- **CMD**
+  ```cmd
+  .venv\Scripts\activate.bat
+  ```
+
+Pasif etmek için:
+```bash
+deactivate
+```
+
+---
+
+### 2) Docker SQL Server başlatma
+Docker Desktop açıldıktan sonra:
+
+```bash
+docker start sql-qualityflow
+```
+
+Durumu kontrol:
+```bash
+docker ps
+```
+
+Günlükleri görmek:
+```bash
+docker logs sql-qualityflow --tail 20
+```
+
+---
