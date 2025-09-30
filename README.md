@@ -8,7 +8,7 @@ Amaç; üretim hattında anormalliklerin tespiti ve kestirimci bakım senaryolar
 
 ## 🛠️ Kullanılacak Teknolojiler (Versiyonlar)
 - **Donanım / Simülasyon**
-  - Siemens TIA Portal V19 + PLCSIM V19
+  - Siemens TIA Portal V19 + S7-PLCSIM Advanced V7.0
   - WinCC Unified Runtime V19 (PC Runtime)
 
 - **Veritabanı**
@@ -32,11 +32,11 @@ Amaç; üretim hattında anormalliklerin tespiti ve kestirimci bakım senaryolar
 ## 🚀 Geliştirme Adımları
 
 ### 1. Ortam Kurulumu
-- Python 3.11 sanal ortam oluşturma  
+- Python 3.11 + Virtualenv sanal ortam oluşturma  
 - Gerekli kütüphanelerin yüklenmesi  
-- SQL Server kurulumu ve test veritabanı  
+- SQL Server 2022 + SSMS 
 - Docker ve Git altyapısının hazırlanması  
-- **TIA Portal V19, S7-PLCSIM V19 ve WinCC Unified (V19) kurulumları**
+- TIA Portal V19, S7-PLCSIM Advanced ve WinCC Unified (V19) kurulumları
 
 ### 2. Veri Kaynağı (Simülasyon)
 - **PLC tarafı**  
@@ -63,8 +63,49 @@ Amaç; üretim hattında anormalliklerin tespiti ve kestirimci bakım senaryolar
     - IO field (küçük) → CycleCounter (DINT sayaç)  
 
 ### 3. Veri Toplama ve Depolama
-- Python script’i ile PLC’den veri çekme  
-- SQL Server’a tablo bazlı kayıt (timestamp, device_id vb. ile)  
+- **PLC ile iletişim**: Python’da `snap7` kütüphanesi kullanılarak S7-1500 CPU’ya bağlantı sağlandı. Bağlantı parametreleri (`PLC_IP`, `RACK`, `SLOT`) `.env` dosyası üzerinden yönetilmektedir.
+- **Veri okuma**: `plc_client.py` modülü, PLC’nin proses görüntü alanından (`Areas.PE`) sensör ve sayaç değerlerini okur. Okunan değerler:  
+  - `Temperature` (°C)  
+  - `Pressure` (bar)  
+  - `MotorSpeed` (rpm)  
+  - `CycleCounter` (döngü sayısı)  
+- **Veri tabanına kayıt**: `db_client.py` modülü, okunan verileri SQL Server üzerindeki `dbo.readings` tablosuna kayıt eder. Tablonun yapısı:  
+  - `id` (otomatik artan birincil anahtar)  
+  - `timestamp` (kayıt zamanı)  
+  - `device_id` (PLC kimliği, örn: `PLC_1`)  
+  - `temperature`  
+  - `pressure`  
+  - `motorspeed`  
+  - `cyclecounter`  
+- **Collector servisi**: `collect.py` script’i ana döngüyü çalıştırır.  
+  1. PLC’ye bağlanır.  
+  2. Değerleri okur.  
+  3. SQL Server’a yazar.  
+  4. Log çıktısı üretir.  
+  5. Belirlenen süre/döngü sonunda tekrar eder.  
+- **Kayıt sınırı**: Collector 50.000 kayıt tamamlandığında otomatik olarak durur. Bu limit test/analiz aşaması için belirlenmiştir.  
+- **Doğrulama**: Veriler SQL Server Management Studio (SSMS) üzerinden sorgulandı, hem kayıt sayısı hem de değerlerin doğruluğu teyit edildi.  
+
+#### 🧹 Clean Code Prensipleri
+- **Tek sorumluluk prensibi**: Kod parçaları tek bir görev için tasarlandı.  
+  - PLC ile bağlantı ve veri okuma: `plc_client.py`  
+  - Veritabanı bağlantısı ve kayıt işlemleri: `db_client.py`  
+  - Ortak konfigürasyon değerleri: `config.py`  
+  - Ana veri toplama döngüsü: `collect.py`  
+- **Magic number/string kullanılmaz**:  
+  - Sabit offset değerleri (`0, 4, 8, 12, 16`) doğrudan kod içinde değil, `config.py` dosyasında anlamlı sabitler olarak tanımlandı.  
+  - IP adresi, rack/slot ve SQL bağlantı bilgileri `.env` dosyasında tutuldu.  
+- **Hata yönetimi**:  
+  - PLC bağlantısı, veri okuma ve SQL kayıt hataları `try/except` bloklarıyla yakalanıyor.  
+  - Hatalar `logging` modülüyle bilgilendirici log mesajlarına dönüştürülüyor.  
+- **Okunabilirlik**:  
+  - Fonksiyon ve değişken isimleri amacını net şekilde ifade ediyor (`connect_plc`, `read_plc_data`, `insert_reading`).  
+  - Gereksiz tekrarlar kaldırıldı, her modül sade tutuldu.  
+- **Yapılandırma bağımsızlığı**:  
+  - Kodda sabit değer yok. Tüm yapılandırmalar `.env` dosyası veya `config.py` üzerinden yönetiliyor.  
+
+> Kod bu haliyle **temiz, modüler, sürdürülebilir, genişletilebilir ve test edilebilir** bir yapıya sahiptir.
+
 
 ### 4. Veri İşleme ve Analiz
 - Python ile veri temizleme ve dönüştürme  
@@ -94,7 +135,7 @@ Amaç; üretim hattında anormalliklerin tespiti ve kestirimci bakım senaryolar
 - `QualityFlowDB` veritabanı ve `readings` tablosu oluşturuldu.
 - `backend/db.py` ile `.env` üzerinden güvenli bağlantı sağlandı.
 - `test_db*.py` dosyaları ile bağlantı, ekleme ve sorgulama testleri yapıldı.
-- **TIA Portal V19, S7-PLCSIM V19 ve WinCC Unified (V19) kurulumları yapıldı.**
+- TIA Portal V19, S7-PLCSIM V19 ve WinCC Unified (V19) kurulumları yapıldı.
 
 ### Aşama 2 – Veri Kaynağı (Simülasyon)
 - TIA Portal V19 + PLCSIM ile sanal veri üretimi yapıldı.  
@@ -104,6 +145,28 @@ Amaç; üretim hattında anormalliklerin tespiti ve kestirimci bakım senaryolar
 - PLC’den üretilen veriler HMI ekranında görselleştirildi.  
 
 ---
+
+
+
+## ⚙️ Ortam Değişkenleri
+
+Proje ortam değişkenlerini `.env` dosyasında tutar.  
+
+1. `.env.example` dosyasını kopyalayın:  
+   ```bash
+   cp .env.example .env
+   ```
+
+2. `.env` dosyasındaki placeholder değerleri değiştirin:  
+
+```ini
+# SQL Server bağlantısı
+SQLSERVER_DSN=DRIVER={ODBC Driver 18 for SQL Server};SERVER=localhost,1433;DATABASE=QualityFlowDB;UID=sa;PWD=YourPassword;TrustServerCertificate=yes;
+```
+
+
+
+> ⚠️ `.env` dosyası `.gitignore` içinde olduğundan **GitHub’a yüklenmez**. Sadece `.env.example` paylaşılır.  
 
 ## 🚀 Hızlı Başlatma
 
@@ -145,4 +208,9 @@ docker ps
 Günlükleri görmek:
 ```bash
 docker logs sql-qualityflow --tail 20
+```
+
+### 3) Docker SQL Server başlatma
+```bash
+python backend/collect.py
 ```
