@@ -9,7 +9,7 @@ Amaç; üretim hattında anormalliklerin tespiti ve kestirimci bakım senaryolar
 ## 🛠️ Kullanılacak Teknolojiler (Versiyonlar)
 - **Donanım / Simülasyon**
   - Siemens TIA Portal V19 + S7-PLCSIM Advanced V7.0
-  - WinCC Unified Runtime V19 (PC Runtime)
+  - WinCC Runtime (HMI)
 
 - **Veritabanı**
   - SQL Server 2022 (Docker container)
@@ -25,7 +25,7 @@ Amaç; üretim hattında anormalliklerin tespiti ve kestirimci bakım senaryolar
 
 - **Görselleştirme**
   - Streamlit panel
-  - WinCC Unified HMI ekran entegrasyonu
+  - HMI ekran entegrasyonu
 
 ---
 
@@ -39,73 +39,12 @@ Amaç; üretim hattında anormalliklerin tespiti ve kestirimci bakım senaryolar
 - TIA Portal V19, S7-PLCSIM Advanced ve WinCC Unified (V19) kurulumları
 
 ### 2. Veri Kaynağı (Simülasyon)
-- **PLC tarafı**  
-  - TIA Portal V19 + PLCSIM ile CPU 1511-1 PN eklendi.  
-  - Global tag tablosunda `Temperature`, `Pressure`, `MotorSpeed`, `CycleCounter` oluşturuldu.  
-  - `DB_SimState` (Phase, Seed, PressureFaultCounter, MotorStopCounter) tanımlandı.  
-  - OB1, **SCL dili** ile yazıldı:  
-    - Temperature: 60±10 °C sinüs dalgası + noise  
-    - Pressure: 2.0±0.25 bar sinüs + küçük noise  
-    - MotorSpeed: 1500±100 kare dalga (1400–1600 RPM)  
-    - CycleCounter: sürekli artan sayaç  
-  - **Anomali senaryoları eklendi:**  
-    - Temperature spike: %1 ihtimalle 85 °C  
-    - Pressure sensor fault: %0.5 ihtimalle 5 cycle boyunca 0.0 bar  
-    - Motor stop: %0.2 ihtimalle 10 cycle boyunca 0 RPM
-
-- **HMI tarafı (WinCC Unified Runtime V19, PC Runtime)**  
-  - HMI Tag’ler tanımlandı (`HMI_Temperature`, `HMI_Pressure`, `HMI_MotorSpeed`, `HMI_CycleCounter`).  
-  - PLC tag’leri ile bağlantı kuruldu.  
-  - `MainScreen` tasarlandı:  
-    - IO field → Temperature (°C, 1 ondalık)  
-    - Gauge → Pressure (0–3 bar skala)  
-    - Trend Control → MotorSpeed (1000–2000 RPM, 30s zaman penceresi)  
-    - IO field (küçük) → CycleCounter (DINT sayaç)  
+- TIA Portal + PLCSIM ile sensör/makine verilerinin simüle edilmesi
+- WinCC Runtime üzerinden HMI ekranında değerlerin görselleştirilmesi
 
 ### 3. Veri Toplama ve Depolama
-- **PLC ile iletişim**: Python’da `snap7` kütüphanesi kullanılarak S7-1500 CPU’ya bağlantı sağlandı. Bağlantı parametreleri (`PLC_IP`, `RACK`, `SLOT`) `.env` dosyası üzerinden yönetilmektedir.
-- **Veri okuma**: `plc_client.py` modülü, PLC’nin proses görüntü alanından (`Areas.PE`) sensör ve sayaç değerlerini okur. Okunan değerler:  
-  - `Temperature` (°C)  
-  - `Pressure` (bar)  
-  - `MotorSpeed` (rpm)  
-  - `CycleCounter` (döngü sayısı)  
-- **Veri tabanına kayıt**: `db_client.py` modülü, okunan verileri SQL Server üzerindeki `dbo.readings` tablosuna kayıt eder. Tablonun yapısı:  
-  - `id` (otomatik artan birincil anahtar)  
-  - `timestamp` (kayıt zamanı)  
-  - `device_id` (PLC kimliği, örn: `PLC_1`)  
-  - `temperature`  
-  - `pressure`  
-  - `motorspeed`  
-  - `cyclecounter`  
-- **Collector servisi**: `collect.py` script’i ana döngüyü çalıştırır.  
-  1. PLC’ye bağlanır.  
-  2. Değerleri okur.  
-  3. SQL Server’a yazar.  
-  4. Log çıktısı üretir.  
-  5. Belirlenen süre/döngü sonunda tekrar eder.  
-- **Kayıt sınırı**: Collector 50.000 kayıt tamamlandığında otomatik olarak durur. Bu limit test/analiz aşaması için belirlenmiştir.  
-- **Doğrulama**: Veriler SQL Server Management Studio (SSMS) üzerinden sorgulandı, hem kayıt sayısı hem de değerlerin doğruluğu teyit edildi.  
-
-#### 🧹 Clean Code Prensipleri
-- **Tek sorumluluk prensibi**: Kod parçaları tek bir görev için tasarlandı.  
-  - PLC ile bağlantı ve veri okuma: `plc_client.py`  
-  - Veritabanı bağlantısı ve kayıt işlemleri: `db_client.py`  
-  - Ortak konfigürasyon değerleri: `config.py`  
-  - Ana veri toplama döngüsü: `collect.py`  
-- **Magic number/string kullanılmaz**:  
-  - Sabit offset değerleri (`0, 4, 8, 12, 16`) doğrudan kod içinde değil, `config.py` dosyasında anlamlı sabitler olarak tanımlandı.  
-  - IP adresi, rack/slot ve SQL bağlantı bilgileri `.env` dosyasında tutuldu.  
-- **Hata yönetimi**:  
-  - PLC bağlantısı, veri okuma ve SQL kayıt hataları `try/except` bloklarıyla yakalanıyor.  
-  - Hatalar `logging` modülüyle bilgilendirici log mesajlarına dönüştürülüyor.  
-- **Okunabilirlik**:  
-  - Fonksiyon ve değişken isimleri amacını net şekilde ifade ediyor (`connect_plc`, `read_plc_data`, `insert_reading`).  
-  - Gereksiz tekrarlar kaldırıldı, her modül sade tutuldu.  
-- **Yapılandırma bağımsızlığı**:  
-  - Kodda sabit değer yok. Tüm yapılandırmalar `.env` dosyası veya `config.py` üzerinden yönetiliyor.  
-
-> Kod bu haliyle **temiz, modüler, sürdürülebilir, genişletilebilir ve test edilebilir** bir yapıya sahiptir.
-
+- Python script’i ile PLC’den veri çekme
+- SQL Server’a tablo bazlı kayıt (timestamp, device_id vb. ile)
 
 ### 4. Veri İşleme ve Analiz
 - Python ile veri temizleme ve dönüştürme  
@@ -210,7 +149,76 @@ Günlükleri görmek:
 docker logs sql-qualityflow --tail 20
 ```
 
-### 3) Docker SQL Server başlatma
+### Aşama 2 – Veri Kaynağı (Simülasyon)
+- **PLC tarafı**  
+  - TIA Portal V19 + PLCSIM ile CPU 1511-1 PN eklendi.  
+  - Global tag tablosunda `Temperature`, `Pressure`, `MotorSpeed`, `CycleCounter` oluşturuldu.  
+  - `DB_SimState` (Phase, Seed, PressureFaultCounter, MotorStopCounter) tanımlandı.  
+  - OB1, **SCL dili** ile yazıldı:  
+    - Temperature: 60±10 °C sinüs dalgası + noise  
+    - Pressure: 2.0±0.25 bar sinüs + küçük noise  
+    - MotorSpeed: 1500±100 kare dalga (1400–1600 RPM)  
+    - CycleCounter: sürekli artan sayaç  
+  - **Anomali senaryoları eklendi:**  
+    - Temperature spike: %1 ihtimalle 85 °C  
+    - Pressure sensor fault: %0.5 ihtimalle 5 cycle boyunca 0.0 bar  
+    - Motor stop: %0.2 ihtimalle 10 cycle boyunca 0 RPM
+
+- **HMI tarafı (WinCC Unified Runtime V19, PC Runtime)**  
+  - HMI Tag’ler tanımlandı (`HMI_Temperature`, `HMI_Pressure`, `HMI_MotorSpeed`, `HMI_CycleCounter`).  
+  - PLC tag’leri ile bağlantı kuruldu.  
+  - `MainScreen` tasarlandı:  
+    - IO field → Temperature (°C, 1 ondalık)  
+    - Gauge → Pressure (0–3 bar skala)  
+    - Trend Control → MotorSpeed (1000–2000 RPM, 30s zaman penceresi)  
+    - IO field (küçük) → CycleCounter (DINT sayaç)  
+
+
+### Aşama 3 – Veri Toplama ve Depolama
+- **PLC ile iletişim**: Python’da `snap7` kütüphanesi kullanılarak S7-1500 CPU’ya bağlantı sağlandı. Bağlantı parametreleri (`PLC_IP`, `RACK`, `SLOT`) `.env` dosyası üzerinden yönetilmektedir.
+- **Veri okuma**: `plc_client.py` modülü, PLC’nin proses görüntü alanından (`Areas.PE`) sensör ve sayaç değerlerini okur. Okunan değerler:  
+  - `Temperature` (°C)  
+  - `Pressure` (bar)  
+  - `MotorSpeed` (rpm)  
+  - `CycleCounter` (döngü sayısı)  
+- **Veri tabanına kayıt**: `db_client.py` modülü, okunan verileri SQL Server üzerindeki `dbo.readings` tablosuna kayıt eder. Tablonun yapısı:  
+  - `id` (otomatik artan birincil anahtar)  
+  - `timestamp` (kayıt zamanı)  
+  - `device_id` (PLC kimliği, örn: `PLC_1`)  
+  - `temperature`  
+  - `pressure`  
+  - `motorspeed`  
+  - `cyclecounter`  
+- **Collector servisi**: `collect.py` script’i ana döngüyü çalıştırır.  
+  1. PLC’ye bağlanır.  
+  2. Değerleri okur.  
+  3. SQL Server’a yazar.  
+  4. Log çıktısı üretir.  
+  5. Belirlenen süre/döngü sonunda tekrar eder.  
+- **Kayıt sınırı**: Collector 50.000 kayıt tamamlandığında otomatik olarak durur. Bu limit test/analiz aşaması için belirlenmiştir.  
+- **Doğrulama**: Veriler SQL Server Management Studio (SSMS) üzerinden sorgulandı, hem kayıt sayısı hem de değerlerin doğruluğu teyit edildi.  
+
+#### 🧹 Clean Code Prensipleri
+- **Tek sorumluluk prensibi**: Kod parçaları tek bir görev için tasarlandı.  
+  - PLC ile bağlantı ve veri okuma: `plc_client.py`  
+  - Veritabanı bağlantısı ve kayıt işlemleri: `db_client.py`  
+  - Ortak konfigürasyon değerleri: `config.py`  
+  - Ana veri toplama döngüsü: `collect.py`  
+- **Magic number/string kullanılmaz**:  
+  - Sabit offset değerleri (`0, 4, 8, 12, 16`) doğrudan kod içinde değil, `config.py` dosyasında anlamlı sabitler olarak tanımlandı.  
+  - IP adresi, rack/slot ve SQL bağlantı bilgileri `.env` dosyasında tutuldu.  
+- **Hata yönetimi**:  
+  - PLC bağlantısı, veri okuma ve SQL kayıt hataları `try/except` bloklarıyla yakalanıyor.  
+  - Hatalar `logging` modülüyle bilgilendirici log mesajlarına dönüştürülüyor.  
+- **Okunabilirlik**:  
+  - Fonksiyon ve değişken isimleri amacını net şekilde ifade ediyor (`connect_plc`, `read_plc_data`, `insert_reading`).  
+  - Gereksiz tekrarlar kaldırıldı, her modül sade tutuldu.  
+- **Yapılandırma bağımsızlığı**:  
+  - Kodda sabit değer yok. Tüm yapılandırmalar `.env` dosyası veya `config.py` üzerinden yönetiliyor.  
+
+> Kod bu haliyle **temiz, modüler, sürdürülebilir, genişletilebilir ve test edilebilir** bir yapıya sahiptir.
+
+Veri toplama servisini başlat:
 ```bash
 python backend/collect.py
 ```
