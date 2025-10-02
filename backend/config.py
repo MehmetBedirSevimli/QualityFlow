@@ -20,3 +20,20 @@ PRESSURE_OFFSET = 4    # Pressure değişkeni offset
 MOTORSPEED_OFFSET = 8  # MotorSpeed değişkeni offset
 COUNTER_OFFSET = 12    # CycleCounter değişkeni offset
 DATA_SIZE = 16         # Toplam okunacak byte sayısı
+
+# Veri Analizi için ek ayarlar
+
+# Tablo adı (analiz için veriler buradan çekilecek)
+READINGS_TABLE = os.getenv("READINGS_TABLE", "readings")
+
+# Model ayarları
+MODEL_DIR = os.getenv("MODEL_DIR", "models")  # ONNX kayıt klasörü
+DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "isolation_forest.onnx")
+
+# Anomali tespiti parametreleri
+CONTAMINATION = float(os.getenv("CONTAMINATION", 0.017))  # ≈ %1.7 anomali varsayımı
+RANDOM_STATE = int(os.getenv("RANDOM_STATE", 42))
+
+ONNX_OPSET = 15
+ONNX_ML_OPSET = 3
+

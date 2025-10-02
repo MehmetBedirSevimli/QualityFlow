@@ -1,10 +1,20 @@
+CREATE DATABASE QualityFlowDB;
+GO
+
 USE QualityFlowDB;
-IF OBJECT_ID('dbo.SensorData','U') IS NULL
-BEGIN
-  CREATE TABLE dbo.SensorData (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
-    SensorName NVARCHAR(50),
-    Value FLOAT,
-    Timestamp DATETIME DEFAULT GETDATE()
-  );
-END;
+GO
+
+IF OBJECT_ID('dbo.readings', 'U') IS NOT NULL
+    DROP TABLE dbo.readings;
+GO
+
+CREATE TABLE dbo.readings (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    timestamp DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+    device_id NVARCHAR(50) NOT NULL,
+    temperature FLOAT NULL,
+    pressure FLOAT NULL,
+    motorspeed FLOAT NULL,
+    cyclecounter BIGINT NULL
+);
+GO

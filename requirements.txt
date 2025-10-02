@@ -17,3 +17,7 @@ uvicorn==0.35.0
 streamlit==1.49.1
 plotly==6.3.0
 altair==5.5.0
+
+skl2onnx==1.19.1
+onnx==1.19.0
+onnxruntime==1.22.1

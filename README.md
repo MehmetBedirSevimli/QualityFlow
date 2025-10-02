@@ -222,3 +222,63 @@ Veri toplama servisini başlat:
 ```bash
 python backend/collect.py
 ```
+
+### Aşama 4 – Veri İşleme ve Analiz
+- **Veri yükleme**:  
+  - `data_loader.py` SQL Server’daki `readings` tablosundan verileri çekmek için yazıldı.  
+  - Kolonlar sabitlendi: `id, timestamp, device_id, temperature, pressure, motorspeed, cyclecounter`.  
+  - `limit` parametresi ile test amaçlı sınırlı veri alınabiliyor.  
+
+- **Ön işleme**:  
+  - `preprocess.py` ile ham veriler temizleniyor ve dönüştürülüyor:  
+    1. Zaman sırasına göre sıralama  
+    2. Tekrarlayan kayıtların temizlenmesi  
+    3. Eksik değerlerin silinmesi  
+    4. StandardScaler ile özelliklerin normalize edilmesi (`temperature`, `pressure`, `motorspeed`)  
+
+- **Model eğitimi**:  
+  - `model_train.py` içinde üç farklı yöntem destekleniyor:  
+    - **Isolation Forest** (denetimsiz öğrenme, anomali tespiti için)  
+    - **LightGBM** (denetimli)  
+    - **XGBoost** (denetimli)  
+  - `split_train_test` ile eğitim/test ayrımı yapılabiliyor.  
+
+- **Anomali tespiti**:  
+  - `anomaly.py` modülü ile tahminler yapılıyor.  
+  - `detect_anomalies`, `attach_anomalies` ve `detect_and_attach` fonksiyonları ile anomaliler `anomaly` kolonu olarak veriye ekliniyor.  
+
+- **Model değerlendirme**:  
+  - `evaluate.py` doğruluk metriklerini hesaplıyor: Accuracy, Precision, Recall, F1, Confusion Matrix, Classification Report.  
+
+- **Model dışa aktarma**:  
+  - `model_export.py` ONNX dönüşümünü yapıyor.  
+  - `skl2onnx` ile ONNX formatında kaydediliyor.  
+  - Opset uyumsuzluğu çözülerek `"ai.onnx.ml": 3` parametresi ile başarıyla export edildi.  
+  - Alternatif olarak pickle formatı (`joblib`) da destekleniyor.  
+
+- **Ortak importlar**:  
+  - `backend/analysis/__init__.py` oluşturuldu.  
+  - Tüm fonksiyonlar tek satır import ile çağrılabilir hale getirildi.  
+
+- **Ana akış**:  
+  - `analyze.py` ile uçtan uca pipeline kuruldu:  
+    1. Veri yükle  
+    2. Ön işleme uygula  
+    3. Model eğit  
+    4. Anomali tespit et ve veriye ekle  
+    5. Opsiyonel değerlendirme yap  
+    6. Modeli ONNX olarak kaydet  
+    7. Kontrol amaçlı ilk 5 satırı ve anomaly dağılımını yazdır  
+
+- **Test sonuçları**:  
+  - 50.000 satırlık veri işlendi.  
+  - %1.7 oranında (850 satır) anomali tespit edildi.  
+  - `models/isolation_forest.onnx` dosyası başarıyla kaydedildi.  
+
+#### 🧹 Clean Code Prensipleri
+- **Tek sorumluluk prensibi**: Her modül sadece bir görevi üstleniyor (`data_loader`, `preprocess`, `model_train`, `anomaly`, `evaluate`, `model_export`).  
+- **Yapılandırma bağımsızlığı**: Tüm parametreler `.env` ve `config.py` üzerinden yönetiliyor, kod içinde sabit değer yok.  
+- **Okunabilirlik ve açıklayıcı isimlendirme**: Fonksiyonlar (`load_data`, `preprocess`, `train_isolation_forest`, `detect_and_attach`) amacını net olarak ifade ediyor.  
+- **Docstring kullanımı**: Tüm fonksiyonlarda Python docstring ile açıklamalar mevcut, IDE ve `help()` fonksiyonu üzerinden görülebilir.  
+- **Hata yönetimi**: Try/except blokları ve `logging` kullanılarak hata mesajları anlaşılır şekilde loglanıyor.  
+- **Modüler yapı**: Ortak importlar için `__init__.py` eklendi, ana akış (`analyze.py`) basitleştirildi.  
