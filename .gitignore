@@ -41,3 +41,8 @@ Thumbs.db
 
 # Logs
 *.log
+
+# ONNX / Pickle modelleri (uretilen ciktilar)
+models/
+*.onnx
+*.pkl
