@@ -282,3 +282,137 @@ python backend/collect.py
 - **Docstring kullanımı**: Tüm fonksiyonlarda Python docstring ile açıklamalar mevcut, IDE ve `help()` fonksiyonu üzerinden görülebilir.  
 - **Hata yönetimi**: Try/except blokları ve `logging` kullanılarak hata mesajları anlaşılır şekilde loglanıyor.  
 - **Modüler yapı**: Ortak importlar için `__init__.py` eklendi, ana akış (`analyze.py`) basitleştirildi.  
+
+## ⚙️ Aşama 5 – API Katmanı (FastAPI ile Makine Öğrenmesi Servisi)
+
+Bu aşamada sistemin veri tahmini ve loglama katmanı geliştirildi. Amaç, modelin (`isolation_forest.onnx`) dış dünyaya güvenli, izlenebilir ve ölçeklenebilir bir RESTful API olarak sunulmasıdır.
+
+---
+
+### 🧩 1. Genel Mimari
+
+```
+backend/
+└── api/
+    ├── main.py                     # Ana uygulama (FastAPI instance)
+    ├── config/
+    │   └── limiter_config.py       # Rate limiter yapılandırması
+    ├── routers/                    # Uç noktalar
+    │   ├── health.py               # Sağlık kontrolü
+    │   ├── logs.py                 # İstek geçmişi/log kaydı
+    │   └── predict.py              # Model tahmin servisi
+    ├── schemas/                    # Veri modelleri (Pydantic)
+    │   ├── predict_schema.py       # Tahmin girdi/çıktı doğrulama
+    │   └── inference_service.py    # Model servis şeması
+    ├── services/                   # İş mantığı katmanı
+    │   ├── inference_service.py    # ONNX modeli çalıştırır
+    │   ├── logging_service.py      # Loglama mekanizması
+    │   ├── security_service.py     # API Key doğrulaması
+    │   └── limiter_service.py      # Rate limiting yönetimi
+    └── utils/
+        └── model_loader.py         # Model yükleme yardımcı fonksiyonu
+```
+
+Bu yapı klasik katmanlı mimari ilkesine uygundur:
+- Routers → HTTP uç noktaları (API entry points)
+- Services → İş mantığı ve sistem servisleri
+- Schemas → Veri doğrulama ve şema tanımları
+- Utils → Yardımcı fonksiyonlar (ör. model yükleme)
+
+---
+
+### 🚀 2. FastAPI Uygulaması
+
+Ana dosya `main.py` üzerinden başlatılır:
+- Router kaydı: `/health`, `/predict`, `/logs` uç noktaları yüklendi.
+- CORS ve Exception yönetimi yapılandırıldı.
+- Rate Limiter ve Security Middleware aktif hale getirildi.
+
+Çalıştırma komutu:
+```bash
+uvicorn backend.api.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+---
+
+### 🧠 3. Model Yükleme ve Tahmin Akışı
+
+- Model: `isolation_forest.onnx`
+- Çalıştırıcı: `onnxruntime.InferenceSession`
+- Servis: `inference_service.py`
+
+Akış:
+1. İstemci `/predict` üzerinden JSON veri gönderir.
+2. `predict_schema.py` veriyi doğrular.
+3. Model çalıştırılır ve çıktı üretilir.
+4. Sonuç JSON formatında döndürülür.
+
+Örnek çıktı:
+```json
+{
+  "model": "isolation_forest.onnx",
+  "timestamp": "2025-10-05T15:37:11Z",
+  "prediction": {"quality": "OK", "probability": 1.0}
+}
+```
+
+---
+
+### 🔒 4. API Key Güvenliği
+
+- Her istekte `X-API-Key` başlığı zorunludur.
+- `.env` dosyasındaki değer `security_service.py` ile doğrulanır.
+- Hatalı anahtar durumunda 403 döner:
+```json
+{"detail": "Invalid or missing API key"}
+```
+
+Amaç, yalnızca yetkili istemcilerin erişimini sağlamaktır.
+
+---
+
+### 📊 5. Loglama ve İzlenebilirlik
+
+`logging_service.py` her isteği UUID, timestamp, IP, endpoint, istek ve yanıtla birlikte kaydeder. `/logs` uç noktası geçmişi döndürür.
+
+```bash
+curl http://127.0.0.1:8000/logs
+```
+
+---
+
+### ⏱️ 6. Rate Limiting
+
+`slowapi` ile her istemciye 3 istek/dakika sınırı konuldu. Limit aşıldığında 429 hatası döner:
+```json
+{"detail": "Rate limit exceeded: 3 per 1 minute"}
+```
+
+---
+
+### 🧪 7. Test ve Doğrulama
+
+- `test_client.py` ile `/health`, `/predict`, `/logs` test edildi.
+- Curl testleriyle rate limit ve API Key kontrolleri doğrulandı.
+- Tüm yanıtlar beklenen formatta döndü.
+
+---
+
+### 🧱 8. Clean Code ve Tasarım Prensipleri
+
+- Katmanlı mimari, tek sorumluluk
+- Bağımlılık enjeksiyonu
+- Merkezi hata ve log yönetimi
+- Docstring ve Türkçe yorumlar (ASCII karakterli)
+- Test edilebilir ve ölçeklenebilir yapı
+
+---
+
+### 📘 9. Sonraki Aşamalar
+
+>  HTTPS sertifikasyonu ve istemci erişimi haricinde tüm API bileşenleri tamamlanmıştır.
+
+-  HTTPS ile güvenli iletişim
+-  Streamlit ve HMI istemci entegrasyonu
+
+
