@@ -46,3 +46,7 @@ Thumbs.db
 models/
 *.onnx
 *.pkl
+
+certs/
+*.pem
+.env

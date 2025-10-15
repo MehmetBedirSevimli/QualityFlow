@@ -283,13 +283,13 @@ python backend/collect.py
 - **Hata yönetimi**: Try/except blokları ve `logging` kullanılarak hata mesajları anlaşılır şekilde loglanıyor.  
 - **Modüler yapı**: Ortak importlar için `__init__.py` eklendi, ana akış (`analyze.py`) basitleştirildi.  
 
-## ⚙️ Aşama 5 – API Katmanı (FastAPI ile Makine Öğrenmesi Servisi)
+##  Aşama 5 – API Katmanı (FastAPI ile Makine Öğrenmesi Servisi)
 
 Bu aşamada sistemin veri tahmini ve loglama katmanı geliştirildi. Amaç, modelin (`isolation_forest.onnx`) dış dünyaya güvenli, izlenebilir ve ölçeklenebilir bir RESTful API olarak sunulmasıdır.
 
 ---
 
-### 🧩 1. Genel Mimari
+###  1. Genel Mimari
 
 ```
 backend/
@@ -321,7 +321,7 @@ Bu yapı klasik katmanlı mimari ilkesine uygundur:
 
 ---
 
-### 🚀 2. FastAPI Uygulaması
+###  2. FastAPI Uygulaması
 
 Ana dosya `main.py` üzerinden başlatılır:
 - Router kaydı: `/health`, `/predict`, `/logs` uç noktaları yüklendi.
@@ -335,7 +335,7 @@ uvicorn backend.api.main:app --host 0.0.0.0 --port 8000 --reload
 
 ---
 
-### 🧠 3. Model Yükleme ve Tahmin Akışı
+###  3. Model Yükleme ve Tahmin Akışı
 
 - Model: `isolation_forest.onnx`
 - Çalıştırıcı: `onnxruntime.InferenceSession`
@@ -358,7 +358,7 @@ Akış:
 
 ---
 
-### 🔒 4. API Key Güvenliği
+###  4. API Key Güvenliği
 
 - Her istekte `X-API-Key` başlığı zorunludur.
 - `.env` dosyasındaki değer `security_service.py` ile doğrulanır.
@@ -371,7 +371,7 @@ Amaç, yalnızca yetkili istemcilerin erişimini sağlamaktır.
 
 ---
 
-### 📊 5. Loglama ve İzlenebilirlik
+###  5. Loglama ve İzlenebilirlik
 
 `logging_service.py` her isteği UUID, timestamp, IP, endpoint, istek ve yanıtla birlikte kaydeder. `/logs` uç noktası geçmişi döndürür.
 
@@ -381,16 +381,16 @@ curl http://127.0.0.1:8000/logs
 
 ---
 
-### ⏱️ 6. Rate Limiting
+###  6. Rate Limiting
 
-`slowapi` ile her istemciye 3 istek/dakika sınırı konuldu. Limit aşıldığında 429 hatası döner:
+`slowapi` ile her istemciye 10 istek/dakika sınırı konuldu. Limit aşıldığında 429 hatası döner:
 ```json
-{"detail": "Rate limit exceeded: 3 per 1 minute"}
+{"detail": "Rate limit exceeded: 10 per 1 minute"}
 ```
 
 ---
 
-### 🧪 7. Test ve Doğrulama
+###  7. Test ve Doğrulama
 
 - `test_client.py` ile `/health`, `/predict`, `/logs` test edildi.
 - Curl testleriyle rate limit ve API Key kontrolleri doğrulandı.
@@ -398,7 +398,7 @@ curl http://127.0.0.1:8000/logs
 
 ---
 
-### 🧱 8. Clean Code ve Tasarım Prensipleri
+###  8. Clean Code ve Tasarım Prensipleri
 
 - Katmanlı mimari, tek sorumluluk
 - Bağımlılık enjeksiyonu
@@ -408,11 +408,59 @@ curl http://127.0.0.1:8000/logs
 
 ---
 
-### 📘 9. Sonraki Aşamalar
+###  9. Sonraki Aşamalar
 
 >  HTTPS sertifikasyonu ve istemci erişimi haricinde tüm API bileşenleri tamamlanmıştır.
 
 -  HTTPS ile güvenli iletişim
 -  Streamlit ve HMI istemci entegrasyonu
+
+
+###  10. HTTPS Güvenli İletişim  
+
+Bu alt aşamada API trafiği **TLS (HTTPS)** üzerinden güvenli hale getirilmiştir.  
+Amaç, istemci (ör. Streamlit paneli veya HMI) ile FastAPI sunucusu arasındaki tüm veri alışverişini şifreli kanaldan sağlamaktır.  
+
+####  Sertifika Yapılandırması  
+- Test ortamında self-signed sertifikalar oluşturulmuştur:  
+  ```bash
+  openssl req -x509 -newkey rsa:2048 -keyout certs/key.pem -out certs/cert.pem -days 365 -nodes
+  ```
+- Sertifikalar `certs/` klasöründe saklanır (`cert.pem`, `key.pem`).  
+- Üretim ortamında Let’s Encrypt veya başka bir CA (Certificate Authority) kullanılabilir.  
+
+####  Ortam Değişkenleri  
+`.env` dosyasına aşağıdaki değişkenler eklenmiştir:  
+```ini
+SSL_CERT_FILE=certs/cert.pem
+SSL_KEY_FILE=certs/key.pem
+VERIFY_SSL=False
+```
+Bu değerler `main.py` tarafından otomatik okunur ve Uvicorn çalıştırılırken SSL parametreleri dinamik olarak yüklenir.
+
+####  Uygulama Çalıştırma  
+Artık SSL dosya yollarını komut satırında belirtmeye gerek yoktur.  
+```bash
+python -m backend.api.main
+```
+Sunucu HTTPS üzerinde başlar ve aşağıdaki adresten test edilebilir:  
+```
+https://127.0.0.1:8443/health
+```
+Self-signed sertifika nedeniyle tarayıcı “güvenli değil” uyarısı verebilir; bu durum normaldir.  
+
+####  Doğrulama  
+```bash
+curl -k https://127.0.0.1:8443/health
+```
+Yanıt:  
+```json
+{"status": "ok", "timestamp": "..."}
+```
+
+####  Sonuç  
+- API artık HTTPS üzerinden güvenli biçimde çalışmaktadır.  
+- API Key, Rate Limit ve Loglama mekanizmaları tam olarak korunmuştur.  
+- Streamlit ve HMI istemcileri bu güvenli API katmanına bağlanmaya hazırdır.  
 
 
